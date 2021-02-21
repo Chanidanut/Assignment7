@@ -1,0 +1,181 @@
+---
+title: "assignment7"
+author: "Chanida Limthamprasert"
+date: "21/2/2564"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#install biobase package
+```{r}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("Biobase")
+```
+
+##Question7
+
+answer:
+
+```{r}
+con=url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/bodymap_eset.RData")
+load(file=con)
+close(con)
+bm = bodymap.eset
+bm
+edata = exprs(bm)
+row_sums = rowSums(edata)
+edata = edata[order(-row_sums),]
+index = 1:500
+heatmap(edata[index,],Rowv=NA,Colv=NA)
+```
+#Question8
+###MA-plot in log2
+```{r}
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/bodymap_eset.RData")
+load(file=con)
+close(con)
+bm = bodymap.eset
+pdata = pData(bm)
+edata = exprs(bm)
+
+mm = log2(edata[,1]+1) - log2(edata[,2]+1)
+aa = log2(edata[,1]+1) + log2(edata[,2]+1)
+plot(aa,mm)
+
+```
+###MA-plot in rlog
+
+```{r}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("DESeq2")
+
+library( "DESeq2" )
+
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/bodymap_eset.RData")
+load(file=con)
+close(con)
+bm = bodymap.eset
+pdata = pData(bm)
+edata = exprs(bm)
+
+edata1 <-rlog(edata)
+
+mmm = (edata1[,1])-(edata1[,2])
+aaa = (edata1[,1])+(edata1[,2])
+plot(aaa,mmm)
+```
+answer: 
+The plots look pretty similar, but there are two strong diagonal stripes (corresponding to the zero count genes) in the log2 plot. In both cases, the genes in the middle of the expression distribution show the biggest differences, but the low abundance genes seem to show smaller differences with the rlog transform.
+
+
+##Question9
+
+###Cluster With no changes to the data
+```{r}
+install.packages("rafalib", repos = "http://cran.us.r-project.org")
+library(rafalib)
+
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/montpick_eset.RData")
+load(file=con)
+close(con)
+mp = montpick.eset
+pdata=pData(mp)
+edata=as.data.frame(exprs(mp))
+fdata = fData(mp)
+dist1 = dist(t(edata))
+hclust1 = hclust(dist1)
+myplclust(hclust1, labels = pdata$sample.id, lab.col = as.numeric(pdata$study), hang = 0.1)
+```
+
+###Cluster After filtering all genes with rowMeans less than 100
+```{r}
+
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/montpick_eset.RData")
+load(file=con)
+close(con)
+mp = montpick.eset
+pdata=pData(mp)
+edata=as.data.frame(exprs(mp))
+fdata = fData(mp)
+edata = edata[rowMeans(edata) > 100,]
+dist1 = dist(t(edata))
+hclust1 = hclust(dist1)
+myplclust(hclust1, labels = pdata$sample.id, lab.col = as.numeric(pdata$study), hang = 0.1)
+
+```
+
+###After taking the log2 transform of the data without filtering
+```{r}
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/montpick_eset.RData")
+load(file=con)
+close(con)
+mp = montpick.eset
+pdata=pData(mp)
+edata=as.data.frame(exprs(mp))
+fdata = fData(mp)
+edata = edata[rowMeans(edata) > 100,]
+edata = log2(edata + 1)
+dist1 = dist(t(edata))
+hclust1 = hclust(dist1)
+myplclust(hclust1, labels = pdata$sample.id, lab.col = as.numeric(pdata$study), hang = 0.1)
+
+```
+
+answer: Clustering with or without filtering is about the same. Clustering after the log2 transform shows better clustering with respect to the study variable. The likely reason is that the highly skewed distribution doesn't match the Euclidean distance metric being used in the clustering example.
+
+##Question10
+### k-means clustering
+```{r}
+
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/montpick_eset.RData")
+load(file=con)
+close(con)
+mp = montpick.eset
+pdata=pData(mp)
+edata=as.data.frame(exprs(mp))
+fdata = fData(mp)
+edata = log2(edata + 1)
+set.seed(1235)
+
+kmeans1 = kmeans(edata,center=2)
+newdata = as.matrix(edata)[order(kmeans1$cluster),]
+dist1 = dist(t(edata))
+hclust1 = hclust(dist1)
+myplclust(hclust1, labels = pdata$sample.id, lab.col = as.numeric(pdata$study), hang = 0.1)
+
+```
+
+###cutree
+```{r}
+
+con =url("http://bowtie-bio.sourceforge.net/recount/ExpressionSets/montpick_eset.RData")
+load(file=con)
+close(con)
+mp = montpick.eset
+pdata=pData(mp)
+edata=as.data.frame(exprs(mp))
+fdata = fData(mp)
+edata = log2(edata + 1)
+set.seed(1235)
+
+dist1 = dist(t(edata))
+hclust1 = hclust(dist1)
+cutree1 = cutree((hclust1), k =2)
+
+myplclust(hclust1, labels = pdata$sample.id, lab.col = as.numeric(pdata$study), hang = 0.1)
+
+```
+
+answer: They produce the same answers and match the study variable equally well. 
+
+
